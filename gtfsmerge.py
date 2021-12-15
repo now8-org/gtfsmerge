@@ -9,7 +9,7 @@ Features:
     * Supports wildcards in input argumets.
     * Skips files from other archives with a different header.
     * Adds the CSV header row once per file in the output archive.
-    * Avoids duplicate lines.
+    * Avoids lines with duplicate indexes.
 
 Note that the script doesn't check the input or output CSV files validity
 nor GTFS compliance.
@@ -55,7 +55,7 @@ def main():
             logging.info("Processing %s...", gtfs_file)
             # open a file with the same name in the resulting zip
             with result.open(gtfs_file, "w") as result_gtfs_file:
-                seen_lines: set = set()
+                seen_ids: set = set()
                 # start populating the output file with the contents of the
                 # reference one (first argument)
                 with zipfile.ZipFile(gtfs_archive_paths[0]).open(
@@ -66,7 +66,7 @@ def main():
                     result_gtfs_file.write(header)
                     for line in reference_gtfs_file:
                         result_gtfs_file.write(line)
-                        seen_lines.add(line)
+                        seen_ids.add(line.decode("utf-8").split(",")[0])
                 # loop through the zip files passed as arguments
                 for gtfs_archive_path in gtfs_archive_paths[1:]:
                     logging.info("\t%s...", gtfs_archive_path)
@@ -76,11 +76,15 @@ def main():
                     ) as content:
                         if content.readline() == header:
                             for line in content:
-                                if line not in seen_lines:
+                                if (
+                                    line.decode("utf-8").split(",")[0]
+                                    not in seen_ids
+                                ):
                                     result_gtfs_file.write(line)
                                 else:
                                     logging.warning(
-                                        "\t\tAvoiding duplicate line: %s",
+                                        "\t\tAvoiding line with duplicate "
+                                        "index: %s",
                                         line.decode("utf-8"),
                                     )
                         else:

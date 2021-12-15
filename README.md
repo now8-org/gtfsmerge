@@ -8,7 +8,7 @@ Script to merge GTFS ZIP archives into one.
 * Supports wildcards in input argumets.
 * Skips files from other archives with a different header.
 * Adds the CSV header row once per file in the output archive.
-* Avoids duplicate lines.
+* Avoids lines with duplicate indexes.
 
 Note that the script doesn't check the input or output CSV files validity
 nor GTFS compliance.
