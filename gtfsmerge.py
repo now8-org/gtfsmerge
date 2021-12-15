@@ -32,7 +32,7 @@ __status__ = "Production"
 
 logging.basicConfig(
     format="[%(asctime)s] [%(levelname)8s] --- %(message)s",
-    level=logging.DEBUG,
+    level=logging.INFO,
 )
 
 
@@ -56,19 +56,16 @@ def main():
             # open a file with the same name in the resulting zip
             with result.open(gtfs_file, "w") as result_gtfs_file:
                 seen_ids: set = set()
-                # start populating the output file with the contents of the
+                # start populating the output file with header of the
                 # reference one (first argument)
                 with zipfile.ZipFile(gtfs_archive_paths[0]).open(
                     gtfs_file
                 ) as reference_gtfs_file:
-                    logging.info("\t%s (reference)...", gtfs_archive_paths[0])
+                    logging.info("\tWriting header from reference...")
                     header: str = reference_gtfs_file.readline()
                     result_gtfs_file.write(header)
-                    for line in reference_gtfs_file:
-                        result_gtfs_file.write(line)
-                        seen_ids.add(line.decode("utf-8").split(",")[0])
                 # loop through the zip files passed as arguments
-                for gtfs_archive_path in gtfs_archive_paths[1:]:
+                for gtfs_archive_path in gtfs_archive_paths:
                     logging.info("\t%s...", gtfs_archive_path)
                     # read the content of the current `gtfs_file` of each
                     with zipfile.ZipFile(gtfs_archive_path).open(
@@ -81,8 +78,11 @@ def main():
                                     not in seen_ids
                                 ):
                                     result_gtfs_file.write(line)
+                                    seen_ids.add(
+                                        line.decode("utf-8").split(",")[0]
+                                    )
                                 else:
-                                    logging.warning(
+                                    logging.debug(
                                         "\t\tAvoiding line with duplicate "
                                         "index: %s",
                                         line.decode("utf-8"),
