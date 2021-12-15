@@ -1,0 +1,24 @@
+# --------- Commitizen -------------
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "1.1.0"
+version_files = ["gtfsmerge.py"]
+
+# --------- Black -------------
+
+[tool.black]
+line-length = 79
+target-version = ['py39']
+include = '\.pyi?$'
+
+# --------- pydocstyle -------------
+
+[tool.pydocstyle]
+convention = "google"
+
+# --------- mypy -------------
+
+[tool.mypy]
+ignore_missing_imports = true
+strict_optional = false

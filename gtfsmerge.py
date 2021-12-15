@@ -31,7 +31,8 @@ __status__ = "Production"
 
 
 logging.basicConfig(
-    format="[%(asctime)s] [%(levelname)8s] --- %(message)s", level=logging.DEBUG
+    format="[%(asctime)s] [%(levelname)8s] --- %(message)s",
+    level=logging.DEBUG,
 )
 
 
@@ -70,7 +71,9 @@ def main():
                 for gtfs_archive_path in gtfs_archive_paths[1:]:
                     logging.info("\t%s...", gtfs_archive_path)
                     # read the content of the current `gtfs_file` of each
-                    with zipfile.ZipFile(gtfs_archive_path).open(gtfs_file) as content:
+                    with zipfile.ZipFile(gtfs_archive_path).open(
+                        gtfs_file
+                    ) as content:
                         if content.readline() == header:
                             for line in content:
                                 if line not in seen_lines:
