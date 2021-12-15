@@ -22,7 +22,7 @@ from typing import List
 __author__ = "m0wer"
 __copyright__ = "Copyright 2021, m0wer"
 __license__ = "GPLv3"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __maintainer__ = "m0wer"
 __email__ = "m0wer@autistici.org"
 __status__ = "Production"
