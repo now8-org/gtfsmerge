@@ -14,6 +14,7 @@ Note that the script doesn't check the input or output CSV files validity
 nor GTFS compliance.
 """
 
+import glob
 import sys
 import zipfile
 from typing import List
@@ -29,7 +30,9 @@ __status__ = "Production"
 
 def main():
     """Run the program."""
-    gtfs_archive_paths: str = sys.argv[1:-1]
+    gtfs_archive_paths: str = [
+        path for arg in sys.argv[1:-1] for path in glob.glob(arg)
+    ]
     output_path: str = sys.argv[-1]
 
     if len(gtfs_archive_paths) < 1:
@@ -50,6 +53,7 @@ def main():
                 with zipfile.ZipFile(gtfs_archive_paths[0]).open(
                     gtfs_file
                 ) as reference_gtfs_file:
+                    print(f"\t{gtfs_archive_paths[0]} (reference)...")
                     header: str = reference_gtfs_file.readline()
                     result_gtfs_file.write(header)
                     for line in reference_gtfs_file:
@@ -57,6 +61,7 @@ def main():
                         seen_lines.add(line)
                 # loop through the zip files passed as arguments
                 for gtfs_archive_path in gtfs_archive_paths[1:]:
+                    print(f"\t{gtfs_archive_path}...")
                     # read the content of the current `gtfs_file` of each
                     with zipfile.ZipFile(gtfs_archive_path).open(gtfs_file) as content:
                         if content.readline() == header:
@@ -64,10 +69,10 @@ def main():
                                 if line not in seen_lines:
                                     result_gtfs_file.write(line)
                                 else:
-                                    print(f"Avoiding duplicate line:\n\t{line}")
+                                    print(f"\t\tAvoiding duplicate line:\n\t{line}")
                         else:
                             print(
-                                f"Skipping {gtfs_file} from {gtfs_archive_path} "
+                                f"\t\tSkipping {gtfs_file} from {gtfs_archive_path} "
                                 f"(header does not match the previous ones."
                             )
 
