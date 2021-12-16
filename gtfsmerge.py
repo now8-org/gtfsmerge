@@ -29,6 +29,15 @@ __maintainer__ = "m0wer"
 __email__ = "m0wer@autistici.org"
 __status__ = "Production"
 
+DUPLICATE_INDEXES_ALLOWED_FILES: List[str] = [
+    "calendar.txt",
+    "calendar_dates.txt",
+    "frequencies.txt",
+    "shapes.txt",
+    "stop_times.txt",
+    "trips.txt",
+]
+
 
 logging.basicConfig(
     format="[%(asctime)s] [%(levelname)8s] --- %(message)s",
@@ -53,9 +62,16 @@ def main():
 
         for gtfs_file in zipfile_namelist:
             logging.info("Processing %s...", gtfs_file)
+
+            chek_duplicates: bool = True
+            if gtfs_file in DUPLICATE_INDEXES_ALLOWED_FILES:
+                chek_duplicates = False
+            else:
+                seen_lines: set = set()
+                seen_ids: set = set()
+
             # open a file with the same name in the resulting zip
             with result.open(gtfs_file, "w") as result_gtfs_file:
-                seen_ids: set = set()
                 # start populating the output file with header of the
                 # reference one (first argument)
                 with zipfile.ZipFile(gtfs_archive_paths[0]).open(
@@ -73,20 +89,31 @@ def main():
                     ) as content:
                         if content.readline() == header:
                             for line in content:
-                                if (
+                                if not chek_duplicates:
+                                    result_gtfs_file.write(line)
+                                elif (
                                     line.decode("utf-8").split(",")[0]
                                     not in seen_ids
                                 ):
                                     result_gtfs_file.write(line)
+                                    seen_lines.add(line)
                                     seen_ids.add(
                                         line.decode("utf-8").split(",")[0]
                                     )
                                 else:
-                                    logging.debug(
-                                        "\t\tAvoiding line with duplicate "
-                                        "index: %s",
-                                        line.decode("utf-8"),
-                                    )
+                                    if line in seen_lines:
+                                        logging.debug(
+                                            "\t\tAvoiding exact row duplicate"
+                                            ": %s",
+                                            line.decode("utf-8"),
+                                        )
+                                    else:
+                                        logging.info(
+                                            "\t\tAvoiding row with duplicate "
+                                            "ID: %s",
+                                            line.decode("utf-8"),
+                                        )
+
                         else:
                             logging.error(
                                 "\t\tSkipping %s from %s "
