@@ -19,7 +19,7 @@ import glob
 import logging
 import sys
 import zipfile
-from typing import List
+from typing import Dict, List, Set
 
 __author__ = "m0wer"
 __copyright__ = "Copyright 2021, m0wer"
@@ -29,14 +29,20 @@ __maintainer__ = "m0wer"
 __email__ = "m0wer@autistici.org"
 __status__ = "Production"
 
-DUPLICATE_INDEXES_ALLOWED_FILES: List[str] = [
-    "calendar.txt",
-    "calendar_dates.txt",
-    "frequencies.txt",
-    "shapes.txt",
-    "stop_times.txt",
-    "trips.txt",
-]
+FILE_INDEXES: Dict[str, List[str]] = {
+    "agency.txt": ["agency_id"],
+    "calendar.txt": ["service_id", "start_date", "end_date"],
+    "calendar_dates.txt": ["service_id", "date"],
+    "fare_attributes.txt": ["fare_id"],
+    "fare_rules.txt": ["fare_id"],
+    "feed_info.txt": ["feed_publisher_name"],
+    "frequencies.txt": ["trip_id", "start_time"],
+    "routes.txt": ["route_id"],
+    "shapes.txt": ["shape_id", "shape_pt_sequence"],
+    "stop_times.txt": ["trip_id", "stop_sequence"],
+    "stops.txt": ["stop_id"],
+    "trips.txt": ["trip_id"],
+}
 
 
 logging.basicConfig(
@@ -63,12 +69,8 @@ def main():
         for gtfs_file in zipfile_namelist:
             logging.info("Processing %s...", gtfs_file)
 
-            chek_duplicates: bool = True
-            if gtfs_file in DUPLICATE_INDEXES_ALLOWED_FILES:
-                chek_duplicates = False
-            else:
-                seen_lines: set = set()
-                seen_ids: set = set()
+            seen_lines: Set[bytes] = set()
+            seen_ids: Set(tuple) = set()
 
             # open a file with the same name in the resulting zip
             with result.open(gtfs_file, "w") as result_gtfs_file:
@@ -80,6 +82,21 @@ def main():
                     logging.info("\tWriting header from reference...")
                     header: str = reference_gtfs_file.readline()
                     result_gtfs_file.write(header)
+                    logging.debug("\t%s", header.decode("utf-8-sig"))
+                non_duplicable_indexes_index: List[int] = []
+
+                if gtfs_file not in FILE_INDEXES:
+                    logging.warning("\t\tUsing first column as index.")
+                    non_duplicable_indexes_index = [0]
+                else:
+                    for index in FILE_INDEXES[gtfs_file]:
+                        non_duplicable_indexes_index.append(
+                            header.decode("utf-8-sig")
+                            .replace("\r\n", "")
+                            .split(",")
+                            .index(index)
+                        )
+
                 # loop through the zip files passed as arguments
                 for gtfs_archive_path in gtfs_archive_paths:
                     logging.info("\t%s...", gtfs_archive_path)
@@ -89,29 +106,28 @@ def main():
                     ) as content:
                         if content.readline() == header:
                             for line in content:
-                                if not chek_duplicates:
-                                    result_gtfs_file.write(line)
-                                elif (
-                                    line.decode("utf-8").split(",")[0]
-                                    not in seen_ids
-                                ):
+                                index_tuple: tuple = tuple(
+                                    line.decode("utf-8-sig")
+                                    .replace("\r\n", "")
+                                    .split(",")[index]
+                                    for index in non_duplicable_indexes_index
+                                )
+                                if index_tuple not in seen_ids:
                                     result_gtfs_file.write(line)
                                     seen_lines.add(line)
-                                    seen_ids.add(
-                                        line.decode("utf-8").split(",")[0]
-                                    )
+                                    seen_ids.add(index_tuple)
                                 else:
                                     if line in seen_lines:
                                         logging.debug(
                                             "\t\tAvoiding exact row duplicate"
                                             ": %s",
-                                            line.decode("utf-8"),
+                                            line.decode("utf-8-sig"),
                                         )
                                     else:
                                         logging.info(
                                             "\t\tAvoiding row with duplicate "
-                                            "ID: %s",
-                                            line.decode("utf-8"),
+                                            "IDs: %s",
+                                            line.decode("utf-8-sig"),
                                         )
 
                         else:
